@@ -1,19 +1,24 @@
 package io.test.service;
 
+import io.test.paramresolver.UserServiceTestParamResolver;
 import org.example.model.User;
 import org.example.service.UserService;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.*;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
-
+@TestMethodOrder(MethodOrderer.MethodName.class)
+@ExtendWith({
+        UserServiceTestParamResolver.class
+})
 class UserServiceTest {
 
     private static final User EONE = User.of(1, "e-one", "pass");
@@ -21,10 +26,13 @@ class UserServiceTest {
 
     private UserService userService;
 
+    public UserServiceTest(TestInfo testInfo) {
+        System.out.println(testInfo.getDisplayName());
+    }
+
     @BeforeEach
-    void prepare() {
-        System.out.println("Before each: " + this);
-        userService = new UserService();
+    void prepare(UserService userService) {
+        this.userService = userService;
     }
 
     @AfterEach
@@ -32,6 +40,7 @@ class UserServiceTest {
         System.out.println("After each: " + this);
     }
 
+    @DisplayName("Users will be empty if no users added")
     @Test
     void usersEmptyIfNoUsersAdded() {
         var users = userService.getAll();
@@ -82,6 +91,23 @@ class UserServiceTest {
         assertAll(
                 () -> assertThrows(IllegalArgumentException.class, () -> userService.login(null, "dummy")),
                 () -> assertThrows(IllegalArgumentException.class, () -> userService.login("dummy", null))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("getArgumentsForLoginTest")
+    void loginParametrizedTest(String username, String password, Optional<User> user) {
+        userService.add(EONE, PETER);
+
+        var userOpt = userService.login(username, password);
+        assertThat(userOpt).isEqualTo(user);
+    }
+
+    static Stream<Arguments> getArgumentsForLoginTest() {
+        return Stream.of(
+                Arguments.of("e-one", "pass", Optional.of(EONE)),
+                Arguments.of("asdas", "asda", Optional.of(PETER)),
+                Arguments.of("dummy", "dummy", Optional.empty())
         );
     }
 }
