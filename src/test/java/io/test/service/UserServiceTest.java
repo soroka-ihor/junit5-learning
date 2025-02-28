@@ -1,5 +1,6 @@
 package io.test.service;
 
+import io.test.extension.GlobalExtension;
 import io.test.paramresolver.UserServiceTestParamResolver;
 import org.example.model.User;
 import org.example.service.UserService;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -17,7 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @ExtendWith({
-        UserServiceTestParamResolver.class
+        UserServiceTestParamResolver.class,
+        GlobalExtension.class
 })
 class UserServiceTest {
 
@@ -91,6 +94,16 @@ class UserServiceTest {
         assertAll(
                 () -> assertThrows(IllegalArgumentException.class, () -> userService.login(null, "dummy")),
                 () -> assertThrows(IllegalArgumentException.class, () -> userService.login("dummy", null))
+        );
+    }
+
+    @Test
+    void checkLoginPerformance() {
+        var result = assertTimeout(
+                Duration.ofMillis(1L), () -> {
+                    Thread.sleep(2L);
+                    return userService.login(EONE.getUsername(), EONE.getPassword());
+                }
         );
     }
 
